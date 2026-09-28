@@ -10,6 +10,13 @@ os.environ["CANARY_RUNS_DIR"] = tempfile.mkdtemp(prefix="canary_runs_")
 os.environ["CANARY_ALLOW_LIVE"] = "true"
 # The default suite always runs on the file backend, whatever the shell exports.
 os.environ.pop("DATABASE_URL", None)
+# Developer shells may export demo settings; tests must not inherit them (a fake live call would then receive
+# arguments it does not accept, or a run would pick up the wrong mode). Tests that need one set it themselves.
+# Popped here too because the session client starts the app before any function fixture runs.
+ISOLATED_ENV = ("CANARY_LLM_THINKING", "CANARY_CHALLENGER_THINKING", "CANARY_STRUCTURED_OUTPUT", "CANARY_SIM_MODE",
+                "CANARY_AGENT_CONTEXT_HOPS")
+for _name in ISOLATED_ENV:
+    os.environ.pop(_name, None)
 
 from canary_api.app import app  # noqa: E402
 from canary_api import runtime, storage  # noqa: E402
@@ -93,12 +100,6 @@ def client():
 @pytest.fixture
 def brief_json() -> dict:
     return sample_brief().model_dump(mode="json")
-
-
-# Developer shells may export demo settings; tests must not inherit them (a fake live call would then receive
-# arguments it does not accept, or a run would pick up the wrong mode). Tests that need one set it themselves.
-ISOLATED_ENV = ("CANARY_LLM_THINKING", "CANARY_CHALLENGER_THINKING", "CANARY_STRUCTURED_OUTPUT", "CANARY_SIM_MODE",
-                "CANARY_AGENT_CONTEXT_HOPS")
 
 
 @pytest.fixture(autouse=True)

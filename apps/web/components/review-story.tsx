@@ -44,7 +44,7 @@ export function ReviewStory({events, complete, decisionPackage, onEvidence, embe
   const selectedRow = pkg?.futures.rows.find(row => row.result_id === recommendation?.result_id);
   // A mitigated recommendation is judged on the mitigated plan, not the base row it was derived from.
   const mitigated = recommendation?.mitigated_result_id ? pkg?.mitigations?.find(item => item.after.result_id === recommendation.mitigated_result_id)?.after : undefined;
-  const outcome = mitigated ? {feasible: mitigated.feasible, net: mitigated.value.net_value_usd} : selectedRow ? {feasible: selectedRow.feasible, net: selectedRow.net_value_p50_usd} : undefined;
+  const outcome = mitigated ? {feasible: mitigated.feasible, net: mitigated.value.p50_net_value_usd ?? mitigated.value.net_value_usd} : selectedRow ? {feasible: selectedRow.feasible, net: selectedRow.net_value_p50_usd} : undefined;
   const highlights = pkg ? decisionHighlights(snapshot.assessments, pkg) : null;
   const needsReview = Boolean(pkg?.open_questions?.length || pkg?.missing_perspectives?.length || pkg?.missing_information?.length || highlights?.risks.length || pkg?.critical_risks?.length);
   const recommendationLabel = recommendation?.action === "do_not_proceed" ? "Do not proceed" : recommendation?.action === "delay" ? "Delay" : recommendation?.action === "proceed_with_mitigations" ? "Proceed with mitigations" : recommendation?.future === "inaction" ? "Keep the current plan unchanged" : recommendation?.future === "alternative" ? "Consider the alternative plan" : recommendation?.future === "delay" ? "Delay the change" : "Act now";

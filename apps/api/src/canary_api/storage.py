@@ -292,10 +292,12 @@ class PostgresStorage:
         # so a transaction-mode pooler also works.
         self.pool = ConnectionPool(url, min_size=1, max_size=4, configure=configure, open=False,
                                    kwargs={"prepare_threshold": None}, name="canary")
-        with self._bootstrap(url) as conn:
+        with self._bootstrap(url) as conn, conn.transaction():
             # Two API processes starting together would race on CREATE ... IF NOT EXISTS and can fail with a
-            # UniqueViolation; a session advisory lock per schema makes the bootstrap run one at a time.
-            conn.execute("SELECT pg_advisory_lock(hashtext(%s))", (f"canary_bootstrap:{schema}",))
+            # UniqueViolation; a transaction advisory lock per schema makes the bootstrap run one at a time and
+            # is released at commit, so a pooler cannot leak it to another client.
+            conn.execute("SET LOCAL lock_timeout = '30s'")
+            conn.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"canary_bootstrap:{schema}",))
             conn.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(schema)))
             conn.execute(search_path)
             for statement in POSTGRES_TABLES:
